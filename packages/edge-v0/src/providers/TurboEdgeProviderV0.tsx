@@ -17,13 +17,15 @@ import {TurboEdgeContextBody} from "../types";
 import {TurboEdgeContext} from "../context";
 
 export function TurboEdgeProviderV0({
-                                      p2pRelay = "p2p-relay-v0.turbo.ing",
-                                      daProxy = "http://localhost:3000",
-                                      p2pPrivateKey,
-                                      children,
-                                    }: {
+  p2pRelay = "p2p-relay-v0.turbo.ing",
+  daProxy = "https://da-proxy.turbo.ing",
+  gameId,
+  p2pPrivateKey,
+  children,
+}: {
   p2pRelay?: string;
   daProxy?: string;
+  gameId?: string;
   p2pPrivateKey?: string;
   children: ReactNode;
 }) {
@@ -252,6 +254,7 @@ export function TurboEdgeProviderV0({
       p2pRelay: p2pRelay.startsWith("https") ? p2pRelay : "https://" + p2pRelay,
       // daProxy: daProxy.startsWith("https") ? daProxy : "https://" + daProxy,
       daProxy: daProxy,
+      gameId,
       addrPrefix,
       connected: true,
     };

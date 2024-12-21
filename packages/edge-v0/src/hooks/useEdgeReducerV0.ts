@@ -31,17 +31,19 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
     onReset?: (previousState: S) => any;
   }
 ): [S, (action: A) => Promise<void>, boolean] {
+  const turboEdge = useTurboEdgeV0();
+
   // get the host as gameId and combine with the topic
-  const gameId = window.location.host;
+  const gameId = turboEdge?.gameId ? `${window.location.host}#${turboEdge.gameId}` : window.location.host;
   if (topic) {
-    topic = `${topic}_${gameId}`;
+    topic = `${gameId}#${topic}`;
   }
+
   const extendedReducer = useCallback(
     (state: S, action: A): S => { return edgeReducerV0(state, action, reducer, initialValue, {onPayload, onReset})},
     [reducer, onReset, onPayload]
   );
 
-  const turboEdge = useTurboEdgeV0();
   const [state, rawDispatch] = useReducer(extendedReducer, initialValue);
   const [initialized, setInitialized] = useState(false);
 
@@ -420,17 +422,26 @@ async function removeTopic(turboEdge: TurboEdgeContextBody, topic: string) {
 async function registerGameInfo(turboEdge: TurboEdgeContextBody, topic: string, gameId: string, sessionId: string) {
   const selfPeerId = turboEdge.node.peerId.toString();
 
-  const response = await fetch(turboEdge.daProxy + "/game/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ peerId: selfPeerId, topic, gameId, sessionId }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Register game info failed");
+  // Connect to da-proxy
+  {
+    const response = await fetch(turboEdge.daProxy + "/game/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ peerId: selfPeerId, topic, gameId, sessionId }),
+    });
+  
+    // da-proxy is not an essential component, so we can ignore the error
+    if (!response.ok) {
+      // throw new Error("Register game info failed");
+      console.error(`da-proxy connection failed (topic="${topic}", gameId="${gameId}", sessionId="${sessionId}")`)
+      return;
+    }
   }
+
+  // Wait for da-proxy connected to the peer and topic
+  await fetch(turboEdge.daProxy + `/connection/${encodeURIComponent(selfPeerId)}/${encodeURIComponent(topic)}`);
 }
 
 // Remove game info from the DA Proxy

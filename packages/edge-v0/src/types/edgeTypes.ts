@@ -17,6 +17,7 @@ export interface TurboEdgeContextBody {
   node: Libp2pNode;
   p2pRelay: string;
   daProxy: string;
+  gameId?: string;
   addrPrefix: string;
   connected: boolean;
   sessionId?: string;
