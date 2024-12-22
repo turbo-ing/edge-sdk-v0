@@ -3,7 +3,7 @@ import {Identify} from "@libp2p/identify";
 
 export interface EdgeAction<S> {
   peerId?: string;
-  sessionId?: string;
+  __turbo__sessionId?: string;
   __turbo__type?: string;
   __turbo__payload?: S;
 }

@@ -14,6 +14,8 @@ import { ensurePeers } from "../utils/peers";
 import {EdgeAction, TurboEdgeContextBody} from "../types";
 import {edgeReducerV0} from "../reducer/edgeReducerV0";
 
+const NEW_SESSION_ID = crypto.randomUUID()
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
@@ -32,6 +34,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
   }
 ): [S, (action: A) => Promise<void>, boolean] {
   const turboEdge = useTurboEdgeV0();
+  const sessionId = useRef<string>("")
 
   // get the host as gameId and combine with the topic
   const gameId = turboEdge?.gameId ? `${window.location.host}#${turboEdge.gameId}` : window.location.host;
@@ -57,7 +60,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
   const dispatch = useCallback(
     async (action: A) => {
       if (turboEdge && topic && initialized) {
-        const data = {...action, sessionId: turboEdge.sessionId};
+        const data = {...action, __turbo__sessionId: turboEdge.sessionId};
         await turboEdge.node.services.pubsub.publish(
           topic,
           fromString(JSON.stringify(data))
@@ -134,7 +137,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
           );
 
           if (pattern.test(eventTopic)) {
-            const action: { type: "PUBLISH_STATE"; payload: S } =
+            const action: { type: "PUBLISH_STATE"; payload: S, sessionId: string } =
               JSON.parse(message);
 
             console.debug("Received message on topic:", eventTopic, action);
@@ -142,12 +145,13 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
             switch (action.type) {
               case "PUBLISH_STATE": {
                 if (!stateInitialized.current) {
-                  stateInitialized.current = true;
                   try {
                     rawDispatch({
                       __turbo__type: "PAYLOAD",
                       __turbo__payload: action.payload,
                     } as A);
+                    sessionId.current = action.sessionId
+                    stateInitialized.current = true;
                   } catch (err) {
                     console.error(err);
                     stateInitialized.current = false;
@@ -166,6 +170,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
       async function fetchInitialData() {
         if (turboEdge) {
           if (peers.length == 0) {
+            sessionId.current = NEW_SESSION_ID
             stateInitialized.current = true;
             return;
           }
@@ -217,6 +222,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
 
           // If no peer is found to have the state for 1 second, we assume that no data is available.
           await wait(1000);
+          sessionId.current = NEW_SESSION_ID
           stateInitialized.current = true;
         }
       }
@@ -233,21 +239,13 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
       }
 
       // Register game info to the DA Proxy
-      let sessionId = Math.random().toString(36).substring(7);
       if (topic && !topic.startsWith("@turbo")) {
-        const gamesInfo = await getGameInfo(turboEdge, gameId, topic);
-        console.log("gamesInfo", JSON.stringify(gamesInfo));
-        if (gamesInfo && gamesInfo.length > 0) {
-          sessionId = gamesInfo[0].sessionId;
-        }
-        turboEdge.sessionId = sessionId;
-        await registerGameInfo(turboEdge, topic, gameId, sessionId);
+        await registerGameInfo(turboEdge, topic, gameId, sessionId.current);
       }
 
       setInitialized(true);
 
       console.debug("Connected to topic:", topic);
-
 
       return async () => {
         turboEdge.node.services.pubsub.unsubscribe(topic);
@@ -258,7 +256,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
         console.debug("Unsubscribed from topic:", topic);
 
         // Remove game info from the DA Proxy
-        await removeGameInfo(turboEdge, topic, gameId, sessionId);
+        await removeGameInfo(turboEdge, topic, gameId, sessionId.current);
 
       };
     }
