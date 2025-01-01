@@ -60,7 +60,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
   const dispatch = useCallback(
     async (action: A) => {
       if (turboEdge && topic && initialized) {
-        const data = {...action, __turbo__sessionId: turboEdge.sessionId};
+        const data = {...action, __turbo__sessionId: sessionId.current};
         await turboEdge.node.services.pubsub.publish(
           topic,
           fromString(JSON.stringify(data))

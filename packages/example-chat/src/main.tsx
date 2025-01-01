@@ -6,7 +6,7 @@ import { TurboEdgeProviderV0 } from '@turbo-ing/edge-v0'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <TurboEdgeProviderV0 gameId='turbo-chat'>
+    <TurboEdgeProviderV0 gameId='turbo-chat' daProxy='http://localhost:3000'>
       <App />
     </TurboEdgeProviderV0>
   </StrictMode>,
