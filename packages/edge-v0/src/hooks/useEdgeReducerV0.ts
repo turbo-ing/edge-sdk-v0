@@ -1,20 +1,14 @@
-import {
-  useState,
-  useEffect,
-  useReducer,
-  useCallback,
-  useRef,
-} from "react";
+import { useState, useEffect, useReducer, useCallback, useRef } from "react";
 import { fromString, toString } from "uint8arrays";
 import { Message, SignedMessage } from "@libp2p/interface";
 import { multiaddr } from "@multiformats/multiaddr";
 import { shuffleArray } from "../utils/shuffle";
 import { useTurboEdgeV0 } from "./useTurboEdgeV0";
 import { ensurePeers } from "../utils/peers";
-import {EdgeAction, TurboEdgeContextBody} from "../types";
-import {edgeReducerV0} from "../reducer/edgeReducerV0";
+import { EdgeAction, TurboEdgeContextBody } from "../types";
+import { edgeReducerV0 } from "../reducer/edgeReducerV0";
 
-const NEW_SESSION_ID = crypto.randomUUID()
+const NEW_SESSION_ID = crypto.randomUUID();
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -34,16 +28,23 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
   }
 ): [S, (action: A) => Promise<void>, boolean] {
   const turboEdge = useTurboEdgeV0();
-  const sessionId = useRef<string>("")
+  const sessionId = useRef<string>("");
 
   // get the host as gameId and combine with the topic
-  const gameId = turboEdge?.gameId ? `${window.location.host}#${turboEdge.gameId}` : window.location.host;
+  const gameId = turboEdge?.gameId
+    ? `${window.location.host}#${turboEdge.gameId}`
+    : window.location.host;
   if (topic) {
     topic = `${gameId}#${topic}`;
   }
 
   const extendedReducer = useCallback(
-    (state: S, action: A): S => { return edgeReducerV0(state, action, reducer, initialValue, {onPayload, onReset})},
+    (state: S, action: A): S => {
+      return edgeReducerV0(state, action, reducer, initialValue, {
+        onPayload,
+        onReset,
+      });
+    },
     [reducer, onReset, onPayload]
   );
 
@@ -60,7 +61,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
   const dispatch = useCallback(
     async (action: A) => {
       if (turboEdge && topic && initialized) {
-        const data = {...action, __turbo__sessionId: sessionId.current};
+        const data = { ...action, __turbo__sessionId: sessionId.current };
         await turboEdge.node.services.pubsub.publish(
           topic,
           fromString(JSON.stringify(data))
@@ -137,8 +138,11 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
           );
 
           if (pattern.test(eventTopic)) {
-            const action: { type: "PUBLISH_STATE"; payload: S, sessionId: string } =
-              JSON.parse(message);
+            const action: {
+              type: "PUBLISH_STATE";
+              payload: S;
+              sessionId: string;
+            } = JSON.parse(message);
 
             console.debug("Received message on topic:", eventTopic, action);
 
@@ -150,7 +154,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
                       __turbo__type: "PAYLOAD",
                       __turbo__payload: action.payload,
                     } as A);
-                    sessionId.current = action.sessionId
+                    sessionId.current = action.sessionId;
                     stateInitialized.current = true;
                   } catch (err) {
                     console.error(err);
@@ -170,7 +174,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
       async function fetchInitialData() {
         if (turboEdge) {
           if (peers.length == 0) {
-            sessionId.current = NEW_SESSION_ID
+            sessionId.current = NEW_SESSION_ID;
             stateInitialized.current = true;
             return;
           }
@@ -222,7 +226,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
 
           // If no peer is found to have the state for 1 second, we assume that no data is available.
           await wait(1000);
-          sessionId.current = NEW_SESSION_ID
+          sessionId.current = NEW_SESSION_ID;
           stateInitialized.current = true;
         }
       }
@@ -240,7 +244,14 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
 
       // Register game info to the DA Proxy
       if (topic && !topic.startsWith("@turbo")) {
-        await registerGameInfo(turboEdge, topic, gameId, sessionId.current);
+        for (let i = 0; i < 5; i++) {
+          try {
+            await registerGameInfo(turboEdge, topic, gameId, sessionId.current);
+            break;
+          } catch (err) {
+            console.error("Failed to register game info", err);
+          }
+        }
       }
 
       setInitialized(true);
@@ -257,7 +268,6 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
 
         // Remove game info from the DA Proxy
         await removeGameInfo(turboEdge, topic, gameId, sessionId.current);
-
       };
     }
 
@@ -266,7 +276,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
 
   const initWithRetry = useCallback(async () => {
     while (pendingCleanup.current) {
-      await wait(100)
+      await wait(100);
     }
 
     for (let i = 0; i < 5; i++) {
@@ -297,7 +307,7 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
           } else {
             destructor = null;
           }
-          pendingCleanup.current = true
+          pendingCleanup.current = true;
           return destructor;
         })
         .catch((err) => {
@@ -311,14 +321,14 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
           promise.then((result) => {
             if (result) {
               result().finally(() => {
-                pendingCleanup.current = false
+                pendingCleanup.current = false;
               });
             }
           });
         } else {
           if (destructor) {
             destructor().finally(() => {
-              pendingCleanup.current = false
+              pendingCleanup.current = false;
             });
           }
         }
@@ -417,7 +427,12 @@ async function removeTopic(turboEdge: TurboEdgeContextBody, topic: string) {
 
 // Register game info to the DA Proxy
 // This is used to inform the DA Proxy that the game is running on the edge node
-async function registerGameInfo(turboEdge: TurboEdgeContextBody, topic: string, gameId: string, sessionId: string) {
+async function registerGameInfo(
+  turboEdge: TurboEdgeContextBody,
+  topic: string,
+  gameId: string,
+  sessionId: string
+) {
   const selfPeerId = turboEdge.node.peerId.toString();
 
   // Connect to da-proxy
@@ -429,22 +444,34 @@ async function registerGameInfo(turboEdge: TurboEdgeContextBody, topic: string, 
       },
       body: JSON.stringify({ peerId: selfPeerId, topic, gameId, sessionId }),
     });
-  
+
     // da-proxy is not an essential component, so we can ignore the error
     if (!response.ok) {
       // throw new Error("Register game info failed");
-      console.error(`da-proxy connection failed (topic="${topic}", gameId="${gameId}", sessionId="${sessionId}")`)
+      console.error(
+        `da-proxy connection failed (topic="${topic}", gameId="${gameId}", sessionId="${sessionId}")`
+      );
       return;
     }
   }
 
   // Wait for da-proxy connected to the peer and topic
-  await fetch(turboEdge.daProxy + `/connection/${encodeURIComponent(selfPeerId)}/${encodeURIComponent(topic)}`);
+  await fetch(
+    turboEdge.daProxy +
+      `/connection/${encodeURIComponent(selfPeerId)}/${encodeURIComponent(
+        topic
+      )}`
+  );
 }
 
 // Remove game info from the DA Proxy
 // This is used to inform the DA Proxy that the game is no longer running on the edge node
-async function removeGameInfo(turboEdge: TurboEdgeContextBody, topic: string, gameId: string, sessionId: string) {
+async function removeGameInfo(
+  turboEdge: TurboEdgeContextBody,
+  topic: string,
+  gameId: string,
+  sessionId: string
+) {
   const selfPeerId = turboEdge.node.peerId.toString();
 
   const response = await fetch(turboEdge.daProxy + "/game/remove", {
@@ -460,8 +487,16 @@ async function removeGameInfo(turboEdge: TurboEdgeContextBody, topic: string, ga
   }
 }
 
-async function getGameInfo(turboEdge: TurboEdgeContextBody, gameId: string, topic: string) {
-  const response = await fetch(`${turboEdge.daProxy}/game/${encodeURIComponent(gameId)}/${encodeURIComponent(topic)}`);
+async function getGameInfo(
+  turboEdge: TurboEdgeContextBody,
+  gameId: string,
+  topic: string
+) {
+  const response = await fetch(
+    `${turboEdge.daProxy}/game/${encodeURIComponent(
+      gameId
+    )}/${encodeURIComponent(topic)}`
+  );
   if (!response.ok) {
     throw new Error("Get game info failed");
   }
