@@ -30,10 +30,12 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
   const turboEdge = useTurboEdgeV0();
   const sessionId = useRef<string>("");
 
+  const windowHost = typeof window === "undefined" ? "" : window.location.host;
+
   // get the host as gameId and combine with the topic
   const gameId = turboEdge?.gameId
-    ? `${window.location.host}#${turboEdge.gameId}`
-    : window.location.host;
+    ? `${windowHost}#${turboEdge.gameId}`
+    : windowHost;
   if (topic) {
     topic = `${gameId}#${topic}`;
   }
