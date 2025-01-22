@@ -11,7 +11,7 @@ interface ExplorerProps {
         | { bottom: string; left?: string; right?: never; top?: never }
         | { left: string; top?: string; bottom?: never; right?: never }
         | { right: string; top?: string; bottom?: never; left?: never }
-        | string; // For full CSS position object
+        | string;
     buttonStyle?: React.CSSProperties;
     containerStyle?: React.CSSProperties;
     iframeStyle?: React.CSSProperties;
@@ -117,7 +117,7 @@ export function Explorer({
                             ...errorStyle,
                         }}
                     >
-                        <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Error</h1>
+                        <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Error Loading Explorer</h1>
                         <p style={{ fontSize: "1rem" }}>{iframeError}</p>
                     </div>
                 ) : (
