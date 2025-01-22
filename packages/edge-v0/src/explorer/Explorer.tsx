@@ -15,7 +15,7 @@ export function Explorer({ iconSize = 18, position = { top: "1.25rem", left: "0"
     const turboEdge = useTurboEdgeV0();
     const [gameId, setGameId] = useState<string | null>(null);
     const [explorerUrl, setExplorerUrl] = useState<string>("");
-    const [isOpen, setIsOpen] = useState<boolean>(true)
+    const [isOpen, setIsOpen] = useState<boolean>(false)
 
     useEffect(() => {
         if (turboEdge?.gameId) {
