@@ -6,12 +6,12 @@ interface ExplorerProps {
     iconSize?: number;
     iconColor?: string;
     customIcon?: React.ReactNode;
-    position?: 
-        | { top: string; left?: string; right?: never; bottom?: never }
-        | { bottom: string; left?: string; right?: never; top?: never }
-        | { left: string; top?: string; bottom?: never; right?: never }
-        | { right: string; top?: string; bottom?: never; left?: never }
-        | string;
+    position?:
+    | { top: string; left?: string; right?: never; bottom?: never }
+    | { bottom: string; left?: string; right?: never; top?: never }
+    | { left: string; top?: string; bottom?: never; right?: never }
+    | { right: string; top?: string; bottom?: never; left?: never }
+    | string;
     buttonStyle?: React.CSSProperties;
     containerStyle?: React.CSSProperties;
     iframeStyle?: React.CSSProperties;
@@ -113,11 +113,11 @@ export function Explorer({
                             height: "100%",
                             textAlign: "center",
                             color: "#F13938",
-                            backgroundColor: "#FFEBEB",
+                            backgroundColor: "#FFFFFF",
                             ...errorStyle,
                         }}
                     >
-                        <h1 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Error Loading Explorer</h1>
+                        <h1 style={{ fontSize: "2.5rem", marginBottom: "0.5rem", fontWeight: 500 }} className=" ">Error Loading Explorer</h1>
                         <p style={{ fontSize: "1rem" }}>{iframeError}</p>
                     </div>
                 ) : (
