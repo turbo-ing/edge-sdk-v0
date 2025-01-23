@@ -1,32 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
+import { ExplorerProps } from "./types";
 import { useTurboEdgeV0 } from "../hooks/useTurboEdgeV0";
-import TurboIcon from "./assets/TurboIcon";
-import Loading from "./Loading";
-import Error from "./Error";
 
-interface ExplorerProps {
-  sessionId?: string;
-  gameId?: string;
-  baseUrl?: string;
-  iconSize?: number;
-  iconColor?: string;
-  customIcon?: React.ReactNode;
-  position?:
-    | { top: string; left?: string; right?: never; bottom?: never }
-    | { bottom: string; left?: string; right?: never; top?: never }
-    | { left: string; top?: string; bottom?: never; right?: never }
-    | { right: string; top?: string; bottom?: never; left?: never }
-    | string;
-  buttonStyle?: React.CSSProperties;
-  containerStyle?: React.CSSProperties;
-  iframeStyle?: React.CSSProperties;
-  iframeAttributes?: React.IframeHTMLAttributes<HTMLIFrameElement>;
-  onOpen?: () => void;
-  onClose?: () => void;
-  onIframeError?: (error: string) => void;
-  errorStyle?: React.CSSProperties;
-  children?: React.ReactNode;
-}
+import ResizeHandle from "./ResizeHandle";
+import IframeContainer from "./IframeContainer";
+import ToggleButton from "./ToggleButton";
 
 export function Explorer({
   sessionId: propSessionId,
@@ -48,24 +26,33 @@ export function Explorer({
 }: ExplorerProps) {
   const turboEdge = useTurboEdgeV0();
 
-  const [sessionId, setSessionId] = useState<string | null>(propSessionId || null);
+  const [sessionId, setSessionId] = useState<string | null>(
+    propSessionId || null
+  );
   const [gameId, setGameId] = useState<string | null>(propGameId || null);
   const [iframeUrl, setIframeUrl] = useState<string>("");
   const [iframeError, setIframeError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState<boolean>(true);
-  const [splitPosition, setSplitPosition] = useState<number>(50);
+  const [splitPosition, setSplitPosition] = useState<number>(50); // as a %
   const [dragging, setDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const isDragging = useRef(false);
 
+  const isDraggingRef = useRef(false);
+
+  // Determine if we have children
+  const hasChildren = React.Children.count(children) > 0;
+
+  // Sync sessionId with external changes / turboEdge
   useEffect(() => {
     setSessionId(propSessionId || turboEdge?.sessionId || null);
   }, [propSessionId, turboEdge?.sessionId]);
 
+  // Sync gameId with external changes / turboEdge
   useEffect(() => {
     setGameId(propGameId || turboEdge?.gameId || null);
   }, [propGameId, turboEdge?.gameId]);
 
+  // Determine iframe URL based on sessionId or gameId
   useEffect(() => {
     if (sessionId) {
       setIframeUrl(`${baseUrl}/session/${sessionId}`);
@@ -81,13 +68,15 @@ export function Explorer({
     }
   }, [sessionId, gameId, baseUrl]);
 
-  const handleClick = () => {
+  // Toggle open/close
+  const handleToggleClick = () => {
     const nextState = !isOpen;
     setIsOpen(nextState);
     if (nextState) onOpen?.();
     else onClose?.();
   };
 
+  // Listen for iframe messages that might trigger errors
   useEffect(() => {
     const handleIframeMessage = (event: MessageEvent) => {
       if (event.data.type === "iframe-message") {
@@ -95,28 +84,32 @@ export function Explorer({
         onIframeError?.(event.data.message);
       }
     };
-
     window.addEventListener("message", handleIframeMessage);
     return () => {
       window.removeEventListener("message", handleIframeMessage);
     };
   }, [onIframeError]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  // Draggable split logic (only relevant if we have children)
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!hasChildren) return;
     e.preventDefault();
-    isDragging.current = true;
+    isDraggingRef.current = true;
     setDragging(true);
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (isDragging.current) {
+    if (!hasChildren) return;
+    if (isDraggingRef.current) {
       const newSplit = (e.clientX / window.innerWidth) * 100;
+      // clamp to between [20%,80%]
       setSplitPosition(Math.min(80, Math.max(20, newSplit)));
     }
   };
 
   const handleMouseUp = () => {
-    isDragging.current = false;
+    if (!hasChildren) return;
+    isDraggingRef.current = false;
     setDragging(false);
   };
 
@@ -127,174 +120,108 @@ export function Explorer({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, []);
+  }, [hasChildren]);
 
+  // Disable text selection while dragging
   useEffect(() => {
-    if (dragging) {
-      document.body.style.userSelect = "none";
-    } else {
-      document.body.style.userSelect = "";
-    }
+    document.body.style.userSelect = dragging ? "none" : "";
   }, [dragging]);
 
-  const resolvedPosition = typeof position === "string" ? {} : position;
+  // We only transition if not dragging
   const transitionStyle = dragging ? "none" : "flex-basis 0.3s ease";
 
   return (
-    <div>
-      <button
-        onClick={handleClick}
-        style={{
-          position: "absolute",
-          padding: "5px",
-          borderTopRightRadius: "0.5rem",
-          borderBottomRightRadius: "0.5rem",
-          background: "#FFFFFF",
-          zIndex: 9999,
-          ...resolvedPosition,
-          ...buttonStyle,
-        }}
-      >
-        {customIcon || <TurboIcon size={iconSize} color={iconColor} />}
-      </button>
+    <>
+      {/* Toggle Button is always rendered */}
+      <ToggleButton
+        isOpen={isOpen}
+        onClick={handleToggleClick}
+        customIcon={customIcon}
+        iconSize={iconSize}
+        iconColor={iconColor}
+        buttonStyle={buttonStyle}
+        position={position}
+      />
 
-      <div
-        style={{
-          display: "flex",
-          position: "absolute",
-          top: 0,
-          left: 0,
-          zIndex: 9998,
-          width: "100%",
-          height: "100%",
-          flexDirection: "row",
-          ...containerStyle,
-        }}
-      >
+      {hasChildren ? (
+        // Render the original split layout if we do have children
         <div
           style={{
-            flexBasis: isOpen ? `${splitPosition}%` : "0%",
-            flexGrow: 0,
-            flexShrink: 0,
+            display: "flex",
+            flexDirection: "row",
+            minWidth: "100%",
+            minHeight: "100dvh",
+            maxHeight: "100dvh",
             overflow: "hidden",
-            transition: transitionStyle,
-            display: "block",
-            background: "#FFF",
+            ...containerStyle,
           }}
         >
-          {iframeError ? (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100%",
-                textAlign: "center",
-                color: "#F13938",
-                backgroundColor: "#FFFFFF",
-                ...errorStyle,
-              }}
-            >
-              <h1 style={{ fontSize: "2.5rem", marginBottom: "0.5rem", fontWeight: 500 }}>
-                Error Loading Explorer
-              </h1>
-              <p style={{ fontSize: "1rem" }}>{iframeError}</p>
-            </div>
-          ) : (
-            isOpen && (
-              <>
-                {isLoading && <Loading />}
-                <iframe
-                  src={iframeUrl}
-                  title="Turbo Explorer"
-                  onLoad={() => setIsLoading(false)}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    border: "none",
-                    pointerEvents: dragging ? "none" : "auto",
-                    display: isLoading ? "none" : "block", // Hide iframe while loading
-                    ...iframeStyle,
-                  }}
-                  {...iframeAttributes}
-                />
-              </>
-            )
-          )}
-        </div>
-
-        {isOpen && (
+          {/* Left (Iframe) Panel */}
           <div
-            onMouseDown={handleMouseDown}
             style={{
-              width: "3px",
-              cursor: "col-resize",
-              backgroundColor: "#ccc",
+              flexBasis: isOpen ? `${splitPosition}%` : "0%",
+              flexGrow: 0,
               flexShrink: 0,
-              position: "relative",
+              overflow: "auto",
+              transition: transitionStyle,
+              background: "#FFF",
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
-                width: "10px",
-                height: "28px",
-                borderRadius: "8px",
-                backgroundColor: "#999",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "space-evenly",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                padding: "2px",
-              }}
-            >
-              <div
-                style={{
-                  width: "3px",
-                  height: "3px",
-                  borderRadius: "50%",
-                  backgroundColor: "#fff",
-                }}
+            {isOpen && (
+              <IframeContainer
+                iframeUrl={iframeUrl}
+                iframeError={iframeError}
+                isDragging={dragging}
+                iframeStyle={iframeStyle}
+                iframeAttributes={iframeAttributes}
+                errorStyle={errorStyle}
               />
-              <div
-                style={{
-                  width: "3px",
-                  height: "3px",
-                  borderRadius: "50%",
-                  backgroundColor: "#fff",
-                }}
-              />
-              <div
-                style={{
-                  width: "3px",
-                  height: "3px",
-                  borderRadius: "50%",
-                  backgroundColor: "#fff",
-                }}
-              />
-            </div>
+            )}
           </div>
-        )}
 
-        <div
-          style={{
-            flexBasis: isOpen ? `${100 - splitPosition}%` : "100%",
-            flexGrow: 0,
-            flexShrink: 0,
-            overflow: "auto",
-            transition: transitionStyle,
-            backgroundColor: "transparent",
-            color: "inherit",
-          }}
-        >
-          {children}
+          {/* Resize Handle */}
+          <ResizeHandle onMouseDown={handleMouseDown} isOpen={isOpen} />
+
+          {/* Right Panel (Children) */}
+          <div
+            style={{
+              flex: 1,
+              overflow: "auto",
+              transition: transitionStyle,
+              backgroundColor: "transparent",
+              color: "inherit",
+            }}
+          >
+            {children}
+          </div>
         </div>
-      </div>
-    </div>
+      ) : (
+        // If no children, create a fixed overlay so it doesn't push content
+        isOpen && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100dvh",
+              background: "#FFF",
+              overflow: "auto",
+              zIndex: 9998, // ensure it's on top of everything
+              ...containerStyle,
+            }}
+          >
+            <IframeContainer
+              iframeUrl={iframeUrl}
+              iframeError={iframeError}
+              isDragging={dragging}
+              iframeStyle={iframeStyle}
+              iframeAttributes={iframeAttributes}
+              errorStyle={errorStyle}
+            />
+          </div>
+        )
+      )}
+    </>
   );
 }

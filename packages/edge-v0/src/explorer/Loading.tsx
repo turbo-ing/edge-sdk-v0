@@ -8,7 +8,7 @@ export default function Loading() {
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: "transparent", // No background
-              zIndex: 50,
+              zIndex: 9999,
               height: "100%"
             }}
           >

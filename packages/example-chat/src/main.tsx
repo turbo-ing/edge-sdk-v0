@@ -7,8 +7,10 @@ import { TurboEdgeProviderV0, Explorer } from '@turbo-ing/edge-v0'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <TurboEdgeProviderV0 gameId='turbo-chat' daProxy='http://localhost:3000'>
-      <Explorer gameId='turbo-2048' />
-      <App />
+      <Explorer gameId='turbo-2048'>
+        <App />
+        </Explorer>
+
     </TurboEdgeProviderV0>
   </StrictMode>,
 )
