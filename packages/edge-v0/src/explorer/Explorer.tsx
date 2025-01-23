@@ -1,6 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useTurboEdgeV0 } from "../hooks/useTurboEdgeV0";
 import TurboIcon from "./assets/TurboIcon";
+import Loading from "./Loading";
+import Error from "./Error";
 
 interface ExplorerProps {
   sessionId?: string;
@@ -46,24 +48,16 @@ export function Explorer({
 }: ExplorerProps) {
   const turboEdge = useTurboEdgeV0();
 
-  // Local sessionId/gameId based on props or fallback
   const [sessionId, setSessionId] = useState<string | null>(propSessionId || null);
   const [gameId, setGameId] = useState<string | null>(propGameId || null);
-
-  // Derived IFrame URL or error
   const [iframeUrl, setIframeUrl] = useState<string>("");
   const [iframeError, setIframeError] = useState<string | null>(null);
-
-  // Explorer open/close state
   const [isOpen, setIsOpen] = useState<boolean>(true);
-
-  // Percentage of the screen occupied by the Explorer
   const [splitPosition, setSplitPosition] = useState<number>(50);
-
-  const isDragging = useRef(false);
   const [dragging, setDragging] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const isDragging = useRef(false);
 
-  // Update local sessionId / gameId whenever props or turboEdge change
   useEffect(() => {
     setSessionId(propSessionId || turboEdge?.sessionId || null);
   }, [propSessionId, turboEdge?.sessionId]);
@@ -72,21 +66,21 @@ export function Explorer({
     setGameId(propGameId || turboEdge?.gameId || null);
   }, [propGameId, turboEdge?.gameId]);
 
-  // Build the iframe URL (session first, else game) or set error if neither
   useEffect(() => {
     if (sessionId) {
       setIframeUrl(`${baseUrl}/session/${sessionId}`);
       setIframeError(null);
+      setIsLoading(true);
     } else if (gameId) {
       setIframeUrl(`${baseUrl}/game/${gameId}`);
       setIframeError(null);
+      setIsLoading(true);
     } else {
       setIframeUrl("");
       setIframeError("No gameId or sessionId detected");
     }
   }, [sessionId, gameId, baseUrl]);
 
-  // Handle opening/closing the Explorer
   const handleClick = () => {
     const nextState = !isOpen;
     setIsOpen(nextState);
@@ -94,7 +88,6 @@ export function Explorer({
     else onClose?.();
   };
 
-  // Listen for iframe error messages
   useEffect(() => {
     const handleIframeMessage = (event: MessageEvent) => {
       if (event.data.type === "iframe-message") {
@@ -109,7 +102,6 @@ export function Explorer({
     };
   }, [onIframeError]);
 
-  // Drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     isDragging.current = true;
@@ -137,7 +129,6 @@ export function Explorer({
     };
   }, []);
 
-  // Prevent text selection while dragging
   useEffect(() => {
     if (dragging) {
       document.body.style.userSelect = "none";
@@ -151,7 +142,6 @@ export function Explorer({
 
   return (
     <div>
-      {/* Toggle Button */}
       <button
         onClick={handleClick}
         style={{
@@ -159,8 +149,6 @@ export function Explorer({
           padding: "5px",
           borderTopRightRadius: "0.5rem",
           borderBottomRightRadius: "0.5rem",
-          filter:
-            "drop-shadow(0 10px 8px rgba(0, 0, 0, 0.04)) drop-shadow(0 4px 3px rgba(0, 0, 0, 0.1))",
           background: "#FFFFFF",
           zIndex: 9999,
           ...resolvedPosition,
@@ -170,7 +158,6 @@ export function Explorer({
         {customIcon || <TurboIcon size={iconSize} color={iconColor} />}
       </button>
 
-      {/* Container for Explorer and Content */}
       <div
         style={{
           display: "flex",
@@ -184,7 +171,6 @@ export function Explorer({
           ...containerStyle,
         }}
       >
-        {/* Explorer Pane */}
         <div
           style={{
             flexBasis: isOpen ? `${splitPosition}%` : "0%",
@@ -210,37 +196,34 @@ export function Explorer({
                 ...errorStyle,
               }}
             >
-              <h1
-                style={{
-                  fontSize: "2.5rem",
-                  marginBottom: "0.5rem",
-                  fontWeight: 500,
-                }}
-              >
+              <h1 style={{ fontSize: "2.5rem", marginBottom: "0.5rem", fontWeight: 500 }}>
                 Error Loading Explorer
               </h1>
               <p style={{ fontSize: "1rem" }}>{iframeError}</p>
             </div>
           ) : (
             isOpen && (
-              <iframe
-                src={iframeUrl}
-                title="Turbo Explorer"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  border: "none",
-                  // Disable pointer events on the iframe while dragging
-                  pointerEvents: dragging ? "none" : "auto",
-                  ...iframeStyle,
-                }}
-                {...iframeAttributes}
-              />
+              <>
+                {isLoading && <Loading />}
+                <iframe
+                  src={iframeUrl}
+                  title="Turbo Explorer"
+                  onLoad={() => setIsLoading(false)}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    border: "none",
+                    pointerEvents: dragging ? "none" : "auto",
+                    display: isLoading ? "none" : "block", // Hide iframe while loading
+                    ...iframeStyle,
+                  }}
+                  {...iframeAttributes}
+                />
+              </>
             )
           )}
         </div>
 
-        {/* Draggable Bar */}
         {isOpen && (
           <div
             onMouseDown={handleMouseDown}
@@ -298,7 +281,6 @@ export function Explorer({
           </div>
         )}
 
-        {/* Game/App content area */}
         <div
           style={{
             flexBasis: isOpen ? `${100 - splitPosition}%` : "100%",
