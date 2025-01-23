@@ -32,10 +32,9 @@ export function Explorer({
   const [gameId, setGameId] = useState<string | null>(propGameId || null);
   const [iframeUrl, setIframeUrl] = useState<string>("");
   const [iframeError, setIframeError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [splitPosition, setSplitPosition] = useState<number>(50); // as a %
   const [dragging, setDragging] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const isDraggingRef = useRef(false);
 
@@ -57,11 +56,9 @@ export function Explorer({
     if (sessionId) {
       setIframeUrl(`${baseUrl}/session/${sessionId}`);
       setIframeError(null);
-      setIsLoading(true);
     } else if (gameId) {
       setIframeUrl(`${baseUrl}/game/${gameId}`);
       setIframeError(null);
-      setIsLoading(true);
     } else {
       setIframeUrl("");
       setIframeError("No gameId or sessionId detected");
@@ -144,7 +141,7 @@ export function Explorer({
       />
 
       {hasChildren ? (
-        // Render the original split layout if we do have children
+        // Render the split layout if we do have children
         <div
           style={{
             display: "flex",
@@ -207,7 +204,7 @@ export function Explorer({
               height: "100dvh",
               background: "#FFF",
               overflow: "auto",
-              zIndex: 9998, // ensure it's on top of everything
+              zIndex: 9998,
               ...containerStyle,
             }}
           >

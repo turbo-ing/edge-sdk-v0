@@ -41,20 +41,20 @@ const IframeContainer: React.FC<IframeContainerProps> = ({
     };
   }, [iframeUrl, setIsLoading]);
 
+  if (iframeUrl === "" || !iframeUrl) {
+    return (
+      <Error
+        title="Configurtion Error"
+        message="No game or session ID detected. Check the explorer config"
+      />
+    );
+  }
+
   if (iframeError) {
     return (
       <Error
         title="There was an Error"
         message={iframeError}
-      />
-    );
-  }
-
-  if (!iframeUrl) {
-    return (
-      <Error
-        title="No URL"
-        message="No gameId or sessionId detected."
       />
     );
   }
