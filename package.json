@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "build": "pnpm -r build",
-    "dev": "concurrently \"pnpm --filter edge-v0 dev\" \"pnpm --filter example-chat dev\""
+    "install": "pnpm -r install",
+    "dev:chat": "concurrently \"pnpm --filter edge-v0 dev\" \"pnpm --filter example-chat dev\"",
+    "dev:2048": "concurrently \"pnpm --filter edge-v0 dev\" \"pnpm --filter game-2048 dev\"",
+    "update:2048": "cd 2048-p2p && git pull"
   },
   "dependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "game-2048": "github:turbo-ing/2048-p2p"
   }
 }
