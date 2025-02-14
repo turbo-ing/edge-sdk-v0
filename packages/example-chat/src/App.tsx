@@ -2,7 +2,6 @@ import { useEdgeReducerV0, useTurboEdgeV0 } from "@turbo-ing/edge-v0";
 import { useEffect, useState } from "react";
 import { chatReducer, initialState } from "./reducers/chat";
 import TurboLogo from "./assets/turbo-logo.svg";
-import PingPeers from "./PingPeers";
 
 function App() {
   const [name, setName] = useState("");

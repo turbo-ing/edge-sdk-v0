@@ -246,14 +246,15 @@ export function useEdgeReducerV0<S, A extends EdgeAction<S>>(
 
       // Register game info to the DA Proxy
       if (topic && !topic.startsWith("@turbo")) {
-        for (let i = 0; i < 5; i++) {
-          try {
-            await registerGameInfo(turboEdge, topic, gameId, sessionId.current);
-            break;
-          } catch (err) {
-            console.error("Failed to register game info", err);
+        new Promise<void>((resolve) => {
+          for (let i = 0; i < 5; i++) {
+            registerGameInfo(turboEdge, topic, gameId, sessionId.current)
+              .then(() => resolve())
+              .catch((err) => {
+                console.error("Failed to register game info", err);
+              });
           }
-        }
+        });
       }
 
       setInitialized(true);
