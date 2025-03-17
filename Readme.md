@@ -4,6 +4,27 @@ The Turbo Edge SDK allows for the development and deployment of low-latency, onl
 
 With just a few lines of additional code, your offline game can be transformed into an online multiplayer game.
 
+## TurboEdgeProviderV0
+
+TurboEdgeProviderV0 is a required context provider for React applications using Turbo Edge. It enables Turbo Edge features, such as the `useEdgeReducerV0` hook, by making the necessary context available throughout your app.
+
+Wrap your application’s root component with the `TurboEdgeProviderV0`. This allows any child component to access Turbo Edge functionalities.
+
+```typescript
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import App from './App.tsx'
+import { TurboEdgeProviderV0 } from '@turbo-ing/edge-v0'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <TurboEdgeProviderV0>
+      <App />
+    </TurboEdgeProviderV0>
+  </StrictMode>,
+)
+```
+
 ## React useReducer vs Turbo Edge useEdgeReducerV0
 
 The design pattern is inspired by the action reducer pattern commonly used in Redux and React, allowing developers to quickly adapt and start working with the Turbo Edge SDK with minimal learning curve.
