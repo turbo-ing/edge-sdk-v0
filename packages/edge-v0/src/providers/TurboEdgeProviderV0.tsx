@@ -1,20 +1,26 @@
-import React, {ReactNode, useCallback, useEffect, useRef, useState,} from "react";
-import {noise} from "@chainsafe/libp2p-noise";
-import {yamux} from "@chainsafe/libp2p-yamux";
-import {circuitRelayTransport} from "@libp2p/circuit-relay-v2";
-import {dcutr} from "@libp2p/dcutr";
-import {webRTC} from "@libp2p/webrtc";
-import {webSockets} from "@libp2p/websockets";
-import {createLibp2p} from "libp2p";
-import {floodsub} from "@libp2p/floodsub";
-import {identify} from "@libp2p/identify";
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { noise } from "@chainsafe/libp2p-noise";
+import { yamux } from "@chainsafe/libp2p-yamux";
+import { circuitRelayTransport } from "@libp2p/circuit-relay-v2";
+import { dcutr } from "@libp2p/dcutr";
+import { webRTC } from "@libp2p/webrtc";
+import { webSockets } from "@libp2p/websockets";
+import { createLibp2p } from "libp2p";
+import { floodsub } from "@libp2p/floodsub";
+import { identify } from "@libp2p/identify";
 import * as filters from "@libp2p/websockets/filters";
-import {shuffleArray} from "../utils/shuffle";
-import {multiaddr} from "@multiformats/multiaddr";
-import {getP2PKey} from "../utils/p2pKey";
-import {ensureLibp2pPeers} from "../utils/peers";
-import {TurboEdgeContextBody} from "../types";
-import {TurboEdgeContext} from "../context";
+import { shuffleArray } from "../utils/shuffle";
+import { multiaddr } from "@multiformats/multiaddr";
+import { getP2PKey } from "../utils/p2pKey";
+import { ensureLibp2pPeers } from "../utils/peers";
+import { TurboEdgeContextBody } from "../types";
+import { TurboEdgeContext } from "../context";
 
 export function TurboEdgeProviderV0({
   p2pRelay = "p2p-relay-v0.turbo.ing",
@@ -132,9 +138,9 @@ export function TurboEdgeProviderV0({
             setValue((value) =>
               value
                 ? {
-                  ...value,
-                  connected: false,
-                }
+                    ...value,
+                    connected: false,
+                  }
                 : undefined
             );
 
@@ -152,15 +158,15 @@ export function TurboEdgeProviderV0({
             if (!connected) {
               const node = await buildLibp2p();
               await node.dial(multiaddr(value.addrPrefix));
-              await ensureLibp2pPeers(node)
+              await ensureLibp2pPeers(node);
 
               setValue((value) =>
                 value
                   ? {
-                    ...value,
-                    node,
-                    connected: true,
-                  }
+                      ...value,
+                      node,
+                      connected: true,
+                    }
                   : undefined
               );
             } else {
@@ -168,9 +174,9 @@ export function TurboEdgeProviderV0({
                 setValue((value) =>
                   value
                     ? {
-                      ...value,
-                      connected: true,
-                    }
+                        ...value,
+                        connected: true,
+                      }
                     : undefined
                 );
               }
@@ -238,10 +244,13 @@ export function TurboEdgeProviderV0({
 
       for (const address of addresses) {
         try {
+          console.debug("Dialing relay", address);
           await node.dial(multiaddr(address));
           addrPrefix = address;
           break;
-        } catch (err) {}
+        } catch (err) {
+          console.error("Failed to dial relay", address, err);
+        }
       }
     }
 
@@ -259,7 +268,7 @@ export function TurboEdgeProviderV0({
       connected: true,
     };
 
-    await ensureLibp2pPeers(node)
+    await ensureLibp2pPeers(node);
 
     console.debug("Turbo Edge initialized successfully");
 
